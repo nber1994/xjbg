@@ -1,0 +1,237 @@
+package main
+
+import "fmt"
+
+//合并 k 个排序链表，返回合并后的排序链表。请分析和描述算法的复杂度。
+//
+//示例:
+//
+//输入:
+//[
+//  1->4->5,
+//  1->3->4,
+//  2->6
+//]
+//输出: 1->1->2->3->4->4->5->6<Paste>
+func main() {
+	a := &ListNode{1, nil}
+	b := &ListNode{4, nil}
+	c := &ListNode{5, nil}
+	d := &ListNode{1, nil}
+	e := &ListNode{3, nil}
+	f := &ListNode{4, nil}
+	g := &ListNode{2, nil}
+	h := &ListNode{6, nil}
+	a.Next = b
+	b.Next = c
+	d.Next = e
+	e.Next = f
+	g.Next = h
+	lists := []*ListNode{a, d, g}
+	res := mergeKLists(lists)
+	for res != nil {
+		//fmt.Println(res.Val)
+		res = res.Next
+	}
+
+	a = &ListNode{1, nil}
+	b = &ListNode{2, nil}
+	c = &ListNode{3, nil}
+	d = &ListNode{4, nil}
+	e = &ListNode{5, nil}
+	f = &ListNode{6, nil}
+	g = &ListNode{7, nil}
+	h = &ListNode{8, nil}
+	a.Next = b
+	b.Next = c
+	c.Next = d
+	d.Next = e
+	e.Next = f
+	f.Next = g
+	g.Next = h
+	res = rotateRight(a, 6)
+	for res != nil {
+		fmt.Println(res.Val)
+		res = res.Next
+	}
+}
+
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+
+type ListNode struct {
+	Val  int
+	Next *ListNode
+}
+
+type MinHeap struct {
+	Heap []*ListNode
+	Size int
+	Lens int //容量
+}
+
+func (this *MinHeap) Pop() *ListNode {
+	if this.Size == 0 {
+		return nil
+	}
+	res := this.Heap[0]
+	this.autoFixDown()
+	return res
+}
+
+func (this *MinHeap) autoFixDown() {
+	this.Heap[0] = this.Heap[this.Size-1]
+	this.Heap = this.Heap[:this.Size-1]
+	this.Size--
+	i := 0
+	j := 0
+	for i < this.Size {
+		child := &ListNode{0, nil}
+		hasChild := false
+		if i*2+2 < this.Size {
+			if this.Heap[i*2+2].Val < this.Heap[i*2+1].Val {
+				child = this.Heap[i*2+2]
+				j = i*2 + 2
+				hasChild = true
+			} else {
+				child = this.Heap[i*2+1]
+				j = i*2 + 1
+				hasChild = true
+			}
+		} else if i*2+1 < this.Size {
+			child = this.Heap[i*2+1]
+			j = i*2 + 1
+			hasChild = true
+		}
+		if hasChild && this.Heap[i].Val > child.Val {
+			this.Heap[i], this.Heap[j] = this.Heap[j], this.Heap[i]
+			i = j
+		} else {
+			break
+		}
+	}
+}
+
+func (this *MinHeap) Push(v *ListNode) bool {
+	if this.Size == this.Lens {
+		return false
+	}
+	if v == nil {
+		return false
+	}
+	this.Heap = append(this.Heap, v)
+	this.Size++
+	this.autoFixUp()
+	return true
+}
+
+func (this *MinHeap) autoFixUp() {
+	i := this.Size - 1
+	j := (i - 1) / 2
+	for i > 0 {
+		if this.Heap[i].Val < this.Heap[j].Val {
+			this.Heap[i], this.Heap[j] = this.Heap[j], this.Heap[i]
+			i = j
+			j = (i - 1) / 2
+		} else {
+			break
+		}
+	}
+}
+
+func mergeKLists(lists []*ListNode) *ListNode {
+	newHead := &ListNode{0, nil}
+	lens := len(lists)
+	mh := &MinHeap{[]*ListNode{}, 0, lens}
+	for _, v := range lists {
+		mh.Push(v)
+	}
+	item := mh.Pop()
+	newHead.Next = item
+	for item != nil {
+		if item.Next != nil {
+			mh.Push(item.Next)
+		}
+		item.Next = mh.Pop()
+		item = item.Next
+	}
+	return newHead.Next
+}
+
+//旋转链表
+//给定一个链表，旋转链表，将链表每个节点向右移动 k 个位置，其中 k 是非负数。
+//
+//示例 1:
+//
+//输入: 1->2->3->4->5->NULL, k = 2
+//输出: 4->5->1->2->3->NULL
+//解释:
+//向右旋转 1 步: 5->1->2->3->4->NULL
+//向右旋转 2 步: 4->5->1->2->3->NULL
+//示例 2:
+//
+//输入: 0->1->2->NULL, k = 4
+//输出: 2->0->1->NULL
+//解释:
+//向右旋转 1 步: 2->0->1->NULL
+//向右旋转 2 步: 1->2->0->NULL
+//向右旋转 3 步: 0->1->2->NULL
+//向右旋转 4 步: 2->0->1->NULL
+
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func rotateRight(head *ListNode, k int) *ListNode {
+	if head == nil || k == 0 {
+		return head
+	}
+	lens := 1
+	end := head
+	for end = head; end.Next != nil; end = end.Next {
+		lens++
+	}
+	k = k % lens
+	newHead := &ListNode{0, head}
+	tail := newHead
+	index := lens - k
+	for index > 0 {
+		tail = tail.Next
+		index--
+	}
+	end.Next = newHead.Next
+	newHead.Next = tail.Next
+	tail.Next = nil
+	return newHead.Next
+}
+
+//删除排序链表中的重复元素
+//给定一个排序链表，删除所有重复的元素，使得每个元素只出现一次。
+//
+//示例 1:
+//
+//输入: 1->1->2
+//输出: 1->2
+//示例 2:
+//
+//输入: 1->1->2->3->3
+//输出: 1->2->3
+
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func deleteDuplicates(head *ListNode) *ListNode {
+
+}
